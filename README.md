@@ -1,6 +1,6 @@
-# Project Name
+# AuraSynth
 
-
+![Screenshot 2025-03-02 180758](https://github.com/user-attachments/assets/5d4fea9a-7b6c-4013-bd89-3a337e11db77)
 
 
 
