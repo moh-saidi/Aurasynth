@@ -58,15 +58,3 @@ npm run dev
 - [Framer Motion](https://www.framer.com/motion/)
 - [React Router DOM](https://reactrouter.com/en/main)
 
-## 📜 License
-
-This project is licensed under the MIT License.
-
-## 🤝 Contributing
-
-Contributions are welcome! Feel free to open issues or submit PRs.
-
-## 📬 Contact
-
-For any inquiries, reach out at [your.email@example.com](mailto\:your.email@example.com).
-
