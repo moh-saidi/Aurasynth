@@ -1,0 +1,72 @@
+# Project Name
+
+
+
+
+
+## 🚀 Overview
+
+A modern React application built with **Vite**, **Tailwind CSS**, and **TypeScript**. This project also integrates **React Lucid UI**, **Framer Motion** for animations, and **React Router DOM** for routing.
+
+## ✨ Features
+
+- ⚡ Fast and optimized with **Vite**
+- 🎨 Styled with **Tailwind CSS**
+- 🔒 Strongly typed with **TypeScript**
+- 🏗️ UI components powered by **React Lucid UI**
+- 🎭 Smooth animations using **Framer Motion**
+- 🛤️ Client-side routing with **React Router DOM**
+
+## 📦 Installation
+
+```bash
+git clone https://github.com/saidipo/Aurasynth
+cd Aurasynth/aurasynth-frontend
+npm install
+```
+
+## 🛠 Usage
+
+Start the development server:
+
+```bash
+npm run dev
+```
+
+## 🔧 Project Structure
+
+```plaintext
+├── src/
+│   ├── components/    # Reusable UI components
+│   ├── pages/         # Application pages
+│   ├── App.tsx        # Main App component
+│   ├── main.tsx       # Entry point
+│   └── ...
+├── public/            # Static assets
+├── package.json       # Dependencies and scripts
+├── tsconfig.json      # TypeScript configuration
+└── vite.config.ts     # Vite configuration
+```
+
+## 🏗️ Technologies Used
+
+- [React](https://react.dev/)
+- [Vite](https://vitejs.dev/)
+- [Tailwind CSS](https://tailwindcss.com/)
+- [TypeScript](https://www.typescriptlang.org/)
+- [React Lucid UI](https://www.npmjs.com/package/lucid-ui)
+- [Framer Motion](https://www.framer.com/motion/)
+- [React Router DOM](https://reactrouter.com/en/main)
+
+## 📜 License
+
+This project is licensed under the MIT License.
+
+## 🤝 Contributing
+
+Contributions are welcome! Feel free to open issues or submit PRs.
+
+## 📬 Contact
+
+For any inquiries, reach out at [your.email@example.com](mailto\:your.email@example.com).
+
