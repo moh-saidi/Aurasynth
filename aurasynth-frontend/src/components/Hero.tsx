@@ -1,4 +1,5 @@
 import React from 'react';
+import { Link } from 'react-router-dom'; // Import Link from react-router-dom
 import hro from "./hro.png";
 
 const Hero: React.FC = () => {
@@ -30,12 +31,12 @@ const Hero: React.FC = () => {
               ></path>
             </svg>
           </a>
-          <a
-            href="#"
+          <Link
+            to="/create" // Redirect to /create
             className="inline-flex items-center justify-center px-5 py-3 text-base font-medium text-center text-white border border-gray-300 rounded-lg hover:bg-white hover:text-black focus:ring-4 focus:ring-gray-100"
           >
             Essayer maintenant
-          </a>
+          </Link>
         </div>
         <div className="hidden lg:mt-0 lg:col-span-5 lg:flex">
           <img src={hro} alt="AuraSynth en action" />

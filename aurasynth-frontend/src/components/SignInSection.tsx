@@ -50,17 +50,71 @@ const SignInSection: React.FC = () => {
     setCurrentView(view);
   };
 
+  const handleRegister = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const name = formData.get("name") as string;
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    try {
+      const response = await fetch("http://localhost:5000/api/register", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ name, email, password }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem("userName", data.user.name);
+        alert("Registration successful!");
+        setCurrentView(ViewType.SIGN_IN);
+      } else {
+        alert(data.message || "Registration failed");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("An error occurred during registration");
+    }
+  };
+
+  const handleLogin = async (e: React.FormEvent) => {
+    e.preventDefault();
+    const formData = new FormData(e.target as HTMLFormElement);
+    const email = formData.get("email") as string;
+    const password = formData.get("password") as string;
+
+    try {
+      const response = await fetch("http://localhost:5000/api/login", {
+        method: "POST",
+        headers: { "Content-Type": "application/json" },
+        body: JSON.stringify({ email, password }),
+      });
+
+      const data = await response.json();
+      if (response.ok) {
+        localStorage.setItem("token", data.token);
+        localStorage.setItem("userName", data.user.name);
+        alert("Login successful!");
+        window.location.href = "/";
+      } else {
+        alert(data.message || "Login failed");
+      }
+    } catch (error) {
+      console.error("Error:", error);
+      alert("An error occurred during login");
+    }
+  };
+
   return (
     <section className="h-screen flex items-center justify-center relative overflow-hidden bg-transparent">
-      {/* Form Container */}
       <div className="w-full rounded-lg shadow dark:border sm:max-w-md xl:p-0 bg-[rgba(255,255,255,0.9)] dark:bg-[rgba(31,41,55,0.9)] bg-opacity-90 relative z-10">
         <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
           <AnimatePresence mode="wait">
-            {/* Sign-in Form */}
             {currentView === ViewType.SIGN_IN && (
               <Form
                 title="Connexion à votre compte"
-                onSubmit={(e) => e.preventDefault()}
+                onSubmit={handleLogin}
                 footerText="Pas encore de compte ?"
                 footerActionText="S'inscrire"
                 onFooterAction={(e) => handleViewChange(ViewType.REGISTER, e)}
@@ -91,27 +145,6 @@ const SignInSection: React.FC = () => {
                     required
                   />
                 </div>
-                <div className="flex items-center justify-between">
-                  <div className="flex items-center">
-                    <input
-                      id="remember"
-                      aria-describedby="remember"
-                      type="checkbox"
-                      className="w-5 h-5 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800"
-                      required
-                    />
-                    <label htmlFor="remember" className="ml-3 text-sm font-medium text-gray-900 dark:text-white">
-                      Se souvenir de moi
-                    </label>
-                  </div>
-                  <a
-                    href="#"
-                    className="text-sm font-medium text-white hover:underline dark:text-primary-500"
-                    onClick={(e) => handleViewChange(ViewType.FORGOT_PASSWORD, e)}
-                  >
-                    Mot de passe oublié ?
-                  </a>
-                </div>
                 <div className="text-center">
                   <button
                     type="submit"
@@ -123,15 +156,27 @@ const SignInSection: React.FC = () => {
               </Form>
             )}
 
-            {/* Register Form */}
             {currentView === ViewType.REGISTER && (
               <Form
                 title="Créer un compte"
-                onSubmit={(e) => e.preventDefault()}
+                onSubmit={handleRegister}
                 footerText="Déjà un compte ?"
                 footerActionText="Se connecter"
                 onFooterAction={(e) => handleViewChange(ViewType.SIGN_IN, e)}
               >
+                <div>
+                  <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
+                    Votre nom
+                  </label>
+                  <input
+                    type="text"
+                    name="name"
+                    id="name"
+                    className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 text-center"
+                    placeholder="John Doe"
+                    required
+                  />
+                </div>
                 <div>
                   <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                     Votre email
@@ -169,7 +214,6 @@ const SignInSection: React.FC = () => {
               </Form>
             )}
 
-            {/* Forgot Password Form */}
             {currentView === ViewType.FORGOT_PASSWORD && (
               <Form
                 title="Réinitialiser votre mot de passe"

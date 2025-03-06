@@ -1,15 +1,26 @@
 import { useState } from "react";
 import { Menu } from "lucide-react";
-import { Link, useLocation } from "react-router-dom";
+import { Link, useLocation, useNavigate } from "react-router-dom";
 import aibrain from "./aibrain.svg";
 
 interface NavbarProps {
-  toggleSignIn?: () => void; // Make toggleSignIn optional since it's no longer needed
+  toggleSignIn?: () => void;
 }
 
 const Navbar: React.FC<NavbarProps> = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
+  const navigate = useNavigate();
+
+  const isLoggedIn = localStorage.getItem("token");
+  const userName = localStorage.getItem("userName");
+
+  const handleLogout = () => {
+    localStorage.removeItem("token");
+    localStorage.removeItem("userName");
+    navigate("/");
+    window.location.reload();
+  };
 
   const links = [
     { name: "Home", href: "/" },
@@ -61,12 +72,24 @@ const Navbar: React.FC<NavbarProps> = () => {
           </div>
         </div>
         <div className="flex space-x-4 ml-auto">
-          <Link
-            to="/connect"
-            className="px-4 py-2 text-blue-700 border border-blue-700 rounded-lg transition duration-300 hover:bg-blue-700 hover:text-white"
-          >
-            Login / Register
-          </Link>
+          {isLoggedIn ? (
+            <div className="flex items-center space-x-4">
+              <span className="text-gray-900 dark:text-white">Hello, {userName}</span>
+              <button
+                onClick={handleLogout}
+                className="px-4 py-2 text-red-700 border border-red-700 rounded-lg transition duration-300 hover:bg-red-700 hover:text-white"
+              >
+                Logout
+              </button>
+            </div>
+          ) : (
+            <Link
+              to="/connect"
+              className="px-4 py-2 text-blue-700 border border-blue-700 rounded-lg transition duration-300 hover:bg-blue-700 hover:text-white"
+            >
+              Login / Register
+            </Link>
+          )}
         </div>
       </div>
     </nav>
