@@ -7,7 +7,7 @@ enum ViewType {
   FORGOT_PASSWORD = "forgot-password",
 }
 
-const ANIMATION_DURATION = 0.3;
+const ANIMATION_DURATION = 0.5;
 
 const Form: React.FC<{
   title: string;
@@ -18,10 +18,10 @@ const Form: React.FC<{
   onFooterAction: (e: React.MouseEvent) => void;
 }> = ({ title, onSubmit, children, footerText, footerActionText, onFooterAction }) => (
   <motion.div
-    initial={{ opacity: 0, y: 20 }}
-    animate={{ opacity: 1, y: 0 }}
-    exit={{ opacity: 0, y: -20 }}
-    transition={{ duration: ANIMATION_DURATION }}
+    initial={{ opacity: 0, x: -50 }}
+    animate={{ opacity: 1, x: 0 }}
+    exit={{ opacity: 0, x: 50 }}
+    transition={{ duration: ANIMATION_DURATION, ease: "easeInOut" }}
   >
     <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white text-center mb-6">
       {title}
@@ -113,6 +113,7 @@ const SignInSection: React.FC = () => {
           <AnimatePresence mode="wait">
             {currentView === ViewType.SIGN_IN && (
               <Form
+                key="sign-in"
                 title="Connexion à votre compte"
                 onSubmit={handleLogin}
                 footerText="Pas encore de compte ?"
@@ -158,6 +159,7 @@ const SignInSection: React.FC = () => {
 
             {currentView === ViewType.REGISTER && (
               <Form
+                key="register"
                 title="Créer un compte"
                 onSubmit={handleRegister}
                 footerText="Déjà un compte ?"
@@ -216,6 +218,7 @@ const SignInSection: React.FC = () => {
 
             {currentView === ViewType.FORGOT_PASSWORD && (
               <Form
+                key="forgot-password"
                 title="Réinitialiser votre mot de passe"
                 onSubmit={(e) => e.preventDefault()}
                 footerText="Vous vous souvenez de votre mot de passe ?"
