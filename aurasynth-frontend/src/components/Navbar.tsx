@@ -7,7 +7,7 @@ interface NavbarProps {
   toggleSignIn?: () => void; // Make toggleSignIn optional since it's no longer needed
 }
 
-const Navbar: React.FC<NavbarProps> = ({ toggleSignIn }) => {
+const Navbar: React.FC<NavbarProps> = () => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
 
