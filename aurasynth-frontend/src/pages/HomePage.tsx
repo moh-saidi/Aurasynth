@@ -36,21 +36,29 @@ const HomePage: React.FC = () => {
 
   return (
     <motion.div
-      initial={{ opacity: 0 }}
-      animate={{ opacity: 1 }}
-      exit={{ opacity: 0 }}
-      transition={{ duration: 0.5 }}
+      initial={{ opacity: 0, x: -100 }} // Slide in from the left
+      animate={{ opacity: 1, x: 0 }} // Animate to the center
+      exit={{ opacity: 0, x: 100 }} // Slide out to the right
+      transition={{ duration: 0.5 }} // Animation duration
       className="relative min-h-screen"
     >
-      <video
-        autoPlay
-        loop
-        muted
-        className="fixed top-0 left-0 w-full h-full object-cover z-0"
+      {/* Background Video with Fade-In Animation */}
+      <motion.div
+        initial={{ opacity: 0 }} // Start fully transparent
+        animate={{ opacity: 1 }} // Fade in to fully visible
+        transition={{ duration: 2, delay: 0.5 }} // Slow fade-in with a slight delay
+        className="fixed top-0 left-0 w-full h-full z-0"
       >
-        <source src={video1} type="video/mp4" />
-        Your browser does not support the video tag.
-      </video>
+        <video
+          autoPlay
+          loop
+          muted
+          className="w-full h-full object-cover"
+        >
+          <source src={video1} type="video/mp4" />
+          Your browser does not support the video tag.
+        </video>
+      </motion.div>
 
       <div className="relative z-10">
         <Navbar toggleSignIn={toggleSignIn} />

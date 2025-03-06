@@ -1,39 +1,70 @@
-import React, { useState, useEffect } from "react";
+import React, { useState } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+
+enum ViewType {
+  SIGN_IN = "sign-in",
+  REGISTER = "register",
+  FORGOT_PASSWORD = "forgot-password",
+}
+
+const ANIMATION_DURATION = 0.3;
+
+const Form: React.FC<{
+  title: string;
+  onSubmit: (e: React.FormEvent) => void;
+  children: React.ReactNode;
+  footerText: string;
+  footerActionText: string;
+  onFooterAction: (e: React.MouseEvent) => void;
+}> = ({ title, onSubmit, children, footerText, footerActionText, onFooterAction }) => (
+  <motion.div
+    initial={{ opacity: 0, y: 20 }}
+    animate={{ opacity: 1, y: 0 }}
+    exit={{ opacity: 0, y: -20 }}
+    transition={{ duration: ANIMATION_DURATION }}
+  >
+    <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white text-center mb-6">
+      {title}
+    </h1>
+    <form className="space-y-4 md:space-y-6" onSubmit={onSubmit}>
+      {children}
+      <p className="text-sm font-light text-gray-500 dark:text-gray-400 text-center">
+        {footerText}{" "}
+        <a
+          href="#"
+          className="font-medium text-primary-600 hover:underline dark:text-primary-500"
+          onClick={onFooterAction}
+        >
+          {footerActionText}
+        </a>
+      </p>
+    </form>
+  </motion.div>
+);
 
 const SignInSection: React.FC = () => {
-  const [currentView, setCurrentView] = useState<"sign-in" | "register" | "forgot-password">("sign-in");
-  const [nextView, setNextView] = useState<"sign-in" | "register" | "forgot-password">("sign-in");
-  const [isAnimating, setIsAnimating] = useState(false);
+  const [currentView, setCurrentView] = useState<ViewType>(ViewType.SIGN_IN);
 
-  const handleViewChange = (view: "sign-in" | "register" | "forgot-password", e: React.MouseEvent) => {
+  const handleViewChange = (view: ViewType, e: React.MouseEvent) => {
     e.preventDefault();
-    if (!isAnimating && view !== currentView) {
-      setIsAnimating(true);
-      setNextView(view);
-    }
+    setCurrentView(view);
   };
 
-  useEffect(() => {
-    if (isAnimating) {
-      const timeout = setTimeout(() => {
-        setCurrentView(nextView);
-        setIsAnimating(false);
-      }, 300);
-      return () => clearTimeout(timeout);
-    }
-  }, [isAnimating, nextView]);
-
   return (
-    <section className="h-screen flex items-center justify-center relative overflow-hidden">
-      <div className="w-full rounded-lg shadow dark:border sm:max-w-md xl:p-0 bg-[rgba(55,65,81,0.75)] dark:bg-[rgba(31,41,55,0.75)] bg-opacity-75 relative z-10">
+    <section className="h-screen flex items-center justify-center relative overflow-hidden bg-transparent">
+      {/* Form Container */}
+      <div className="w-full rounded-lg shadow dark:border sm:max-w-md xl:p-0 bg-[rgba(255,255,255,0.9)] dark:bg-[rgba(31,41,55,0.9)] bg-opacity-90 relative z-10">
         <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
-          {/* Sign-in Form */}
-          {currentView === "sign-in" && (
-            <div className={`transition-opacity duration-300 ${isAnimating ? "opacity-0" : "opacity-100"}`}>
-              <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white text-center mb-6">
-                Connexion à votre compte
-              </h1>
-              <form className="space-y-4 md:space-y-6" action="#">
+          <AnimatePresence mode="wait">
+            {/* Sign-in Form */}
+            {currentView === ViewType.SIGN_IN && (
+              <Form
+                title="Connexion à votre compte"
+                onSubmit={(e) => e.preventDefault()}
+                footerText="Pas encore de compte ?"
+                footerActionText="S'inscrire"
+                onFooterAction={(e) => handleViewChange(ViewType.REGISTER, e)}
+              >
                 <div>
                   <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                     Votre email
@@ -69,16 +100,14 @@ const SignInSection: React.FC = () => {
                       className="w-5 h-5 border border-gray-300 rounded bg-gray-50 focus:ring-3 focus:ring-primary-300 dark:bg-gray-700 dark:border-gray-600 dark:focus:ring-primary-600 dark:ring-offset-gray-800"
                       required
                     />
-                    <div className="ml-3 text-sm text-gray-900 dark:text-white">
-                      <label htmlFor="remember" className="text-sm font-medium text-gray-900 dark:text-white">
-                        Se souvenir de moi
-                      </label>
-                    </div>
+                    <label htmlFor="remember" className="ml-3 text-sm font-medium text-gray-900 dark:text-white">
+                      Se souvenir de moi
+                    </label>
                   </div>
                   <a
                     href="#"
                     className="text-sm font-medium text-white hover:underline dark:text-primary-500"
-                    onClick={(e) => handleViewChange("forgot-password", e)}
+                    onClick={(e) => handleViewChange(ViewType.FORGOT_PASSWORD, e)}
                   >
                     Mot de passe oublié ?
                   </a>
@@ -91,27 +120,18 @@ const SignInSection: React.FC = () => {
                     Se connecter
                   </button>
                 </div>
-                <p className="text-sm font-light text-gray-500 dark:text-gray-400 text-center">
-                  Pas encore de compte ?{" "}
-                  <a
-                    href="#"
-                    className="font-medium text-primary-600 hover:underline dark:text-primary-500"
-                    onClick={(e) => handleViewChange("register", e)}
-                  >
-                    S'inscrire
-                  </a>
-                </p>
-              </form>
-            </div>
-          )}
+              </Form>
+            )}
 
-          {/* Register Form */}
-          {currentView === "register" && (
-            <div className={`transition-opacity duration-300 ${isAnimating ? "opacity-0" : "opacity-100"}`}>
-              <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white text-center mb-6">
-                Créer un compte
-              </h1>
-              <form className="space-y-4 md:space-y-6" action="#">
+            {/* Register Form */}
+            {currentView === ViewType.REGISTER && (
+              <Form
+                title="Créer un compte"
+                onSubmit={(e) => e.preventDefault()}
+                footerText="Déjà un compte ?"
+                footerActionText="Se connecter"
+                onFooterAction={(e) => handleViewChange(ViewType.SIGN_IN, e)}
+              >
                 <div>
                   <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                     Votre email
@@ -146,27 +166,18 @@ const SignInSection: React.FC = () => {
                     S'inscrire
                   </button>
                 </div>
-                <p className="text-sm font-light text-gray-500 dark:text-gray-400 text-center">
-                  Déjà un compte ?{" "}
-                  <a
-                    href="#"
-                    className="font-medium text-primary-600 hover:underline dark:text-primary-500"
-                    onClick={(e) => handleViewChange("sign-in", e)}
-                  >
-                    Se connecter
-                  </a>
-                </p>
-              </form>
-            </div>
-          )}
+              </Form>
+            )}
 
-          {/* Forgot Password Form */}
-          {currentView === "forgot-password" && (
-            <div className={`transition-opacity duration-300 ${isAnimating ? "opacity-0" : "opacity-100"}`}>
-              <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white text-center mb-6">
-                Réinitialiser votre mot de passe
-              </h1>
-              <form className="space-y-4 md:space-y-6" action="#">
+            {/* Forgot Password Form */}
+            {currentView === ViewType.FORGOT_PASSWORD && (
+              <Form
+                title="Réinitialiser votre mot de passe"
+                onSubmit={(e) => e.preventDefault()}
+                footerText="Vous vous souvenez de votre mot de passe ?"
+                footerActionText="Se connecter"
+                onFooterAction={(e) => handleViewChange(ViewType.SIGN_IN, e)}
+              >
                 <div>
                   <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
                     Votre email
@@ -188,19 +199,9 @@ const SignInSection: React.FC = () => {
                     Réinitialiser
                   </button>
                 </div>
-                <p className="text-sm font-light text-gray-500 dark:text-gray-400 text-center">
-                  Vous vous souvenez de votre mot de passe ?{" "}
-                  <a
-                    href="#"
-                    className="font-medium text-primary-600 hover:underline dark:text-primary-500"
-                    onClick={(e) => handleViewChange("sign-in", e)}
-                  >
-                    Se connecter
-                  </a>
-                </p>
-              </form>
-            </div>
-          )}
+              </Form>
+            )}
+          </AnimatePresence>
         </div>
       </div>
     </section>
