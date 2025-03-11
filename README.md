@@ -24,13 +24,22 @@ git clone https://github.com/saidipo/Aurasynth
 cd Aurasynth/aurasynth-frontend
 npm install
 ```
+```bash
+cd Aurasynth/aurasynth-backend
+npm install
+
+```
+
+
+
 
 ## 🛠 Usage
 
 Start the development server:
 
 ```bash
-npm run dev
+npm run dev for frontend
+node server.js for backend
 ```
 
 ## 🔧 Project Structure
