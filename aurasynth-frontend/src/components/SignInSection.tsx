@@ -1,257 +1,461 @@
-import React, { useState } from "react";
-import { motion, AnimatePresence } from "framer-motion";
-
-enum ViewType {
-  SIGN_IN = "sign-in",
-  REGISTER = "register",
-  FORGOT_PASSWORD = "forgot-password",
-}
-
-const ANIMATION_DURATION = 0.5;
-
-const Form: React.FC<{
-  title: string;
-  onSubmit: (e: React.FormEvent) => void;
-  children: React.ReactNode;
-  footerText: string;
-  footerActionText: string;
-  onFooterAction: (e: React.MouseEvent) => void;
-}> = ({ title, onSubmit, children, footerText, footerActionText, onFooterAction }) => (
-  <motion.div
-    initial={{ opacity: 0, x: -50 }}
-    animate={{ opacity: 1, x: 0 }}
-    exit={{ opacity: 0, x: 50 }}
-    transition={{ duration: ANIMATION_DURATION, ease: "easeInOut" }}
-  >
-    <h1 className="text-xl font-bold leading-tight tracking-tight text-gray-900 md:text-2xl dark:text-white text-center mb-6">
-      {title}
-    </h1>
-    <form className="space-y-4 md:space-y-6" onSubmit={onSubmit}>
-      {children}
-      <p className="text-sm font-light text-gray-500 dark:text-gray-400 text-center">
-        {footerText}{" "}
-        <a
-          href="#"
-          className="font-medium text-primary-600 hover:underline dark:text-primary-500"
-          onClick={onFooterAction}
-        >
-          {footerActionText}
-        </a>
-      </p>
-    </form>
-  </motion.div>
-);
+import React, { useState } from 'react';
+import { motion } from 'framer-motion';
+import { useNavigate, useLocation } from 'react-router-dom';
 
 const SignInSection: React.FC = () => {
-  const [currentView, setCurrentView] = useState<ViewType>(ViewType.SIGN_IN);
+  const [view, setView] = useState<'signIn' | 'register' | 'forgotPassword'>('signIn');
+  const [formData, setFormData] = useState({
+    name: '',
+    email: '',
+    password: '',
+    confirmPassword: '',
+  });
+  const [error, setError] = useState<string | null>(null);
+  const [isLoading, setIsLoading] = useState(false);
+  const navigate = useNavigate();
+  const location = useLocation();
+  const redirectTo = location.state?.redirectTo || '/';
+  const API_URL = 'http://localhost:5000';
 
-  const handleViewChange = (view: ViewType, e: React.MouseEvent) => {
-    e.preventDefault();
-    setCurrentView(view);
+  const handleInputChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const { name, value } = e.target;
+    console.log('Input changed:', { name, value });
+    setFormData((prev) => ({ ...prev, [name]: value }));
+    setError(null);
+  };
+
+  const fetchWithRetry = async (url: string, options: RequestInit, retries = 1): Promise<Response> => {
+    try {
+      const response = await fetch(url, options);
+      if (!response.ok && response.status === 0) {
+        throw new Error('Network error or CORS issue');
+      }
+      return response;
+    } catch (error) {
+      if (retries > 0) {
+        console.warn(`Retrying request to ${url}, retries left: ${retries}`);
+        return fetchWithRetry(url, options, retries - 1);
+      }
+      throw error;
+    }
   };
 
   const handleRegister = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    const name = formData.get("name") as string;
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    setError(null);
+    setIsLoading(true);
+    console.log('handleRegister called with:', formData);
+
+    // Client-side validation
+    if (formData.name.length < 2) {
+      setError('Name must be at least 2 characters');
+      setIsLoading(false);
+      return;
+    }
+    if (!/^[^\s@]+@[^\s@]+\.[^\s@]+$/.test(formData.email)) {
+      setError('Invalid email format');
+      setIsLoading(false);
+      return;
+    }
+    if (formData.email.includes('tempmail.com') || formData.email.includes('mailinator.com')) {
+      setError('Disposable email addresses are not allowed');
+      setIsLoading(false);
+      return;
+    }
+    if (formData.password !== formData.confirmPassword) {
+      setError('Passwords do not match');
+      setIsLoading(false);
+      return;
+    }
+    const passwordRegex = /^(?=.*[a-z])(?=.*[A-Z])(?=.*\d)(?=.*[@$!%*?&]).{8,}$/;
+    console.log('Password:', formData.password, 'Regex test:', passwordRegex.test(formData.password));
+    if (!passwordRegex.test(formData.password)) {
+      setError(
+        'Password must be at least 8 characters and contain one uppercase letter, one lowercase letter, one number, and one special character (@$!%*?&)'
+      );
+      setIsLoading(false);
+      return;
+    }
 
     try {
-      const response = await fetch("http://localhost:5000/api/register", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ name, email, password }),
+      const response = await fetchWithRetry(`${API_URL}/api/register`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          name: formData.name,
+          email: formData.email,
+          password: formData.password,
+        }),
       });
 
       const data = await response.json();
+      console.log('Register response:', data);
+
       if (response.ok) {
-        localStorage.setItem("userName", data.user.name);
-        alert("Registration successful!");
-        setCurrentView(ViewType.SIGN_IN);
+        setView('signIn');
+        setFormData({ name: '', email: '', password: '', confirmPassword: '' });
+        setError(null);
       } else {
-        alert(data.message || "Registration failed");
+        const errorMessage = data.errors?.join(', ') || data.message || `Registration failed (Status: ${response.status})`;
+        setError(errorMessage);
+        console.error('Registration error:', {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+          headers: Object.fromEntries(response.headers.entries()),
+        });
       }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("An error occurred during registration");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Registration fetch error:', {
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        url: `${API_URL}/api/register`,
+      });
+      setError(
+        errorMessage.includes('CORS')
+          ? 'CORS error: The backend may not allow requests from this origin. Check backend CORS settings.'
+          : `Unable to connect to the server at ${API_URL}. Please ensure the backend is running and accessible from your browser.`
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
   const handleLogin = async (e: React.FormEvent) => {
     e.preventDefault();
-    const formData = new FormData(e.target as HTMLFormElement);
-    const email = formData.get("email") as string;
-    const password = formData.get("password") as string;
+    setError(null);
+    setIsLoading(true);
+
+    console.log('Login attempt:', { email: formData.email, password: formData.password });
 
     try {
-      const response = await fetch("http://localhost:5000/api/login", {
-        method: "POST",
-        headers: { "Content-Type": "application/json" },
-        body: JSON.stringify({ email, password }),
+      const response = await fetchWithRetry(`${API_URL}/api/login`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({
+          email: formData.email,
+          password: formData.password,
+        }),
+      });
+
+      const data = await response.json();
+      console.log('Login response:', data);
+      if (response.ok) {
+        localStorage.setItem('token', data.token);
+        localStorage.setItem('userName', data.user.name);
+        navigate(redirectTo);
+        if (redirectTo === '/') {
+          window.location.reload();
+        }
+      } else {
+        setError(data.message || `Login failed (Status: ${response.status})`);
+        console.error('Login error:', {
+          status: response.status,
+          statusText: response.statusText,
+          data,
+          headers: Object.fromEntries(response.headers.entries()),
+        });
+      }
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      console.error('Login fetch error:', {
+        message: errorMessage,
+        stack: error instanceof Error ? error.stack : undefined,
+        url: `${API_URL}/api/login`,
+      });
+      setError(
+        errorMessage.includes('CORS')
+          ? 'CORS error: The backend may not allow requests from this origin. Check backend CORS settings.'
+          : `Unable to connect to the server at ${API_URL}. Please ensure the backend is running and accessible from your browser.`
+      );
+    } finally {
+      setIsLoading(false);
+    }
+  };
+
+  const handleForgotPassword = async (e: React.FormEvent) => {
+    e.preventDefault();
+    setError(null);
+    setIsLoading(true);
+
+    try {
+      const response = await fetchWithRetry(`${API_URL}/api/forgot-password`, {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify({ email: formData.email }),
       });
 
       const data = await response.json();
       if (response.ok) {
-        localStorage.setItem("token", data.token);
-        localStorage.setItem("userName", data.user.name);
-        alert("Login successful!");
-        window.location.href = "/";
+        setError(null);
+        setFormData({ name: '', email: '', password: '', confirmPassword: '' });
+        alert('A password reset link has been sent to your email. Please check your inbox.');
+        setView('signIn');
       } else {
-        alert(data.message || "Login failed");
+        setError(data.message || 'Failed to send password reset email');
       }
-    } catch (error) {
-      console.error("Error:", error);
-      alert("An error occurred during login");
+    } catch (error: unknown) {
+      const errorMessage = error instanceof Error ? error.message : 'Unknown error';
+      setError(
+        errorMessage.includes('CORS')
+          ? 'CORS error: The backend may not allow requests from this origin.'
+          : 'Unable to connect to the server. Please try again later.'
+      );
+    } finally {
+      setIsLoading(false);
     }
   };
 
+  const containerVariants = {
+    hidden: { opacity: 0, y: -50 },
+    visible: { opacity: 1, y: 0, transition: { duration: 0.5 } },
+    exit: { opacity: 0, y: 50, transition: { duration: 0.5 } },
+  };
+
   return (
-    <section className="h-screen flex items-center justify-center relative overflow-hidden bg-transparent">
-      <div className="w-full rounded-lg shadow dark:border sm:max-w-md xl:p-0 bg-[rgba(255,255,255,0.9)] dark:bg-[rgba(31,41,55,0.9)] bg-opacity-90 relative z-10">
-        <div className="p-6 space-y-4 md:space-y-6 sm:p-8">
-          <AnimatePresence mode="wait">
-            {currentView === ViewType.SIGN_IN && (
-              <Form
-                key="sign-in"
-                title="Connexion à votre compte"
-                onSubmit={handleLogin}
-                footerText="Pas encore de compte ?"
-                footerActionText="S'inscrire"
-                onFooterAction={(e) => handleViewChange(ViewType.REGISTER, e)}
-              >
-                <div>
-                  <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Votre email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    id="email"
-                    className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 text-center"
-                    placeholder="name@company.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Mot de passe
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    id="password"
-                    placeholder="••••••••"
-                    className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 text-center"
-                    required
-                  />
-                </div>
-                <div className="text-center">
-                  <button
-                    type="submit"
-                    className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-8 py-3 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800 w-full"
-                  >
-                    Se connecter
-                  </button>
-                </div>
-              </Form>
-            )}
-
-            {currentView === ViewType.REGISTER && (
-              <Form
-                key="register"
-                title="Créer un compte"
-                onSubmit={handleRegister}
-                footerText="Déjà un compte ?"
-                footerActionText="Se connecter"
-                onFooterAction={(e) => handleViewChange(ViewType.SIGN_IN, e)}
-              >
-                <div>
-                  <label htmlFor="name" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Votre nom
-                  </label>
-                  <input
-                    type="text"
-                    name="name"
-                    id="name"
-                    className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 text-center"
-                    placeholder="John Doe"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Votre email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    id="email"
-                    className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 text-center"
-                    placeholder="name@company.com"
-                    required
-                  />
-                </div>
-                <div>
-                  <label htmlFor="password" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Mot de passe
-                  </label>
-                  <input
-                    type="password"
-                    name="password"
-                    id="password"
-                    placeholder="••••••••"
-                    className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 text-center"
-                    required
-                  />
-                </div>
-                <div className="text-center">
-                  <button
-                    type="submit"
-                    className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-8 py-3 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800 w-full"
-                  >
-                    S'inscrire
-                  </button>
-                </div>
-              </Form>
-            )}
-
-            {currentView === ViewType.FORGOT_PASSWORD && (
-              <Form
-                key="forgot-password"
-                title="Réinitialiser votre mot de passe"
-                onSubmit={(e) => e.preventDefault()}
-                footerText="Vous vous souvenez de votre mot de passe ?"
-                footerActionText="Se connecter"
-                onFooterAction={(e) => handleViewChange(ViewType.SIGN_IN, e)}
-              >
-                <div>
-                  <label htmlFor="email" className="block mb-2 text-sm font-medium text-gray-900 dark:text-white">
-                    Votre email
-                  </label>
-                  <input
-                    type="email"
-                    name="email"
-                    id="email"
-                    className="bg-gray-50 border border-gray-300 text-gray-900 rounded-lg focus:ring-primary-600 focus:border-primary-600 block w-full p-2.5 dark:bg-gray-700 dark:border-gray-600 dark:placeholder-gray-400 dark:text-white dark:focus:ring-blue-500 dark:focus:border-blue-500 text-center"
-                    placeholder="name@company.com"
-                    required
-                  />
-                </div>
-                <div className="text-center">
-                  <button
-                    type="submit"
-                    className="text-white bg-blue-700 hover:bg-blue-800 focus:ring-4 focus:ring-blue-300 font-medium rounded-lg text-sm px-8 py-3 me-2 mb-2 dark:bg-blue-600 dark:hover:bg-blue-700 focus:outline-none dark:focus:ring-blue-800 w-full"
-                  >
-                    Réinitialiser
-                  </button>
-                </div>
-              </Form>
-            )}
-          </AnimatePresence>
+    <motion.div
+      variants={containerVariants}
+      initial="hidden"
+      animate="visible"
+      exit="exit"
+      className="bg-white dark:bg-gray-800 p-8 rounded-xl shadow-lg max-w-md w-full mx-4"
+    >
+      {error && (
+        <div
+          className="mb-4 text-red-600 dark:text-red-400 text-center"
+          role="alert"
+          aria-live="assertive"
+        >
+          {error}
         </div>
-      </div>
-    </section>
+      )}
+
+      {view === 'signIn' && (
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
+            Connexion
+          </h2>
+          <form onSubmit={handleLogin} className="space-y-4">
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="mt-1 w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                required
+                aria-required="true"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Mot de passe
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                className="mt-1 w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                required
+                aria-required="true"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-50"
+              aria-label="Se connecter"
+            >
+              {isLoading ? 'Connexion en cours...' : 'Se connecter'}
+            </button>
+          </form>
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => setView('forgotPassword')}
+              className="text-blue-600 hover:underline dark:text-blue-400"
+              aria-label="Mot de passe oublié"
+            >
+              Mot de passe oublié ?
+            </button>
+          </div>
+          <div className="mt-2 text-center">
+            <span className="text-gray-600 dark:text-gray-300">
+              Pas de compte ?{' '}
+            </span>
+            <button
+              onClick={() => setView('register')}
+              className="text-blue-600 hover:underline dark:text-blue-400"
+              aria-label="S’inscrire"
+            >
+              S’inscrire
+            </button>
+          </div>
+        </div>
+      )}
+
+      {view === 'register' && (
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
+            Inscription
+          </h2>
+          <form onSubmit={handleRegister} className="space-y-4">
+            <div>
+              <label
+                htmlFor="name"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Nom
+              </label>
+              <input
+                type="text"
+                id="name"
+                name="name"
+                value={formData.name}
+                onChange={handleInputChange}
+                className="mt-1 w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                required
+                aria-required="true"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="mt-1 w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                required
+                aria-required="true"
+              />
+            </div>
+            <div>
+              <label
+                htmlFor="password"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Mot de passe
+              </label>
+              <input
+                type="password"
+                id="password"
+                name="password"
+                value={formData.password}
+                onChange={handleInputChange}
+                className="mt-1 w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                required
+                aria-required="true"
+              />
+              <p className="mt-1 text-xs text-gray-500 dark:text-gray-400">
+                Minimum 8 characters, with uppercase, lowercase, number, and special character (e.g., @$!%*?&).
+              </p>
+            </div>
+            <div>
+              <label
+                htmlFor="confirmPassword"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Confirmer le mot de passe
+              </label>
+              <input
+                type="password"
+                id="confirmPassword"
+                name="confirmPassword"
+                value={formData.confirmPassword}
+                onChange={handleInputChange}
+                className="mt-1 w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                required
+                aria-required="true"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-50"
+              aria-label="S’inscrire"
+            >
+              {isLoading ? 'Inscription en cours...' : 'S’inscrire'}
+            </button>
+          </form>
+          <div className="mt-4 text-center">
+            <span className="text-gray-600 dark:text-gray-300">
+              Déjà un compte ?{' '}
+            </span>
+            <button
+              onClick={() => setView('signIn')}
+              className="text-blue-600 hover:underline dark:text-blue-400"
+              aria-label="Se connecter"
+            >
+              Se connecter
+            </button>
+          </div>
+        </div>
+      )}
+
+      {view === 'forgotPassword' && (
+        <div>
+          <h2 className="text-2xl font-bold text-gray-900 dark:text-white mb-6 text-center">
+            Récupérer le mot de passe
+          </h2>
+          <form onSubmit={handleForgotPassword} className="space-y-4">
+            <div>
+              <label
+                htmlFor="email"
+                className="block text-sm font-medium text-gray-700 dark:text-gray-300"
+              >
+                Email
+              </label>
+              <input
+                type="email"
+                id="email"
+                name="email"
+                value={formData.email}
+                onChange={handleInputChange}
+                className="mt-1 w-full p-3 border border-gray-300 rounded-lg dark:bg-gray-700 dark:border-gray-600 dark:text-white focus:ring-2 focus:ring-blue-500 outline-none"
+                required
+                aria-required="true"
+              />
+            </div>
+            <button
+              type="submit"
+              disabled={isLoading}
+              className="w-full bg-blue-600 hover:bg-blue-700 text-white font-semibold rounded-lg py-3 focus:outline-none focus:ring-2 focus:ring-blue-500 transition-all disabled:opacity-50"
+              aria-label="Envoyer le lien de réinitialisation"
+            >
+              {isLoading ? 'Envoi en cours...' : 'Envoyer le lien de réinitialisation'}
+            </button>
+          </form>
+          <div className="mt-4 text-center">
+            <button
+              onClick={() => setView('signIn')}
+              className="text-blue-600 hover:underline dark:text-blue-400"
+              aria-label="Retour à la connexion"
+            >
+              Retour à la connexion
+            </button>
+          </div>
+        </div>
+      )}
+    </motion.div>
   );
 };
 

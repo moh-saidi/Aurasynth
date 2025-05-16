@@ -61,23 +61,29 @@ const HomePage: React.FC = () => {
       </motion.div>
 
       <div className="relative z-10">
-        <Navbar toggleSignIn={toggleSignIn} />
-        {showSignIn || isAnimatingOut ? (
-          <div className={`animate-slide-down ${isAnimatingOut ? 'animate-slide-up' : ''}`}>
-            <SignInSection />
-          </div>
-        ) : null}
-        {showHero && (
-          <div className={`${isHeroFadingOut ? 'animate-fade-out' : 'animate-fade-in'}`}>
-            <Hero />
-          </div>
-        )}
-        <CtaSection />
-        <StatsSection />
-        <FeaturesSection />
-        <FAQSection />
-        <Footer />
+  <Navbar toggleSignIn={toggleSignIn} />
+  
+  {/* Main Content Area */}
+  <div className="min-h-[calc(100vh-200px)] flex flex-col">
+    {showSignIn || isAnimatingOut ? (
+      <div className={`flex-1 flex items-center justify-center ${isAnimatingOut ? 'animate-slide-up' : 'animate-slide-down'}`}>
+        <SignInSection />
       </div>
+    ) : null}
+    
+    {showHero && (
+      <div className={`flex-1 ${isHeroFadingOut ? 'animate-fade-out' : 'animate-fade-in'}`}>
+        <Hero />
+      </div>
+    )}
+  </div>
+
+  <CtaSection />
+  <StatsSection />
+  <FeaturesSection />
+  <FAQSection />
+  <Footer />
+</div>
     </motion.div>
   );
 };

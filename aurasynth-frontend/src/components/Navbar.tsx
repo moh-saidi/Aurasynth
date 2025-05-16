@@ -1,32 +1,32 @@
-import { useState } from "react";
-import { Menu } from "lucide-react";
-import { Link, useLocation, useNavigate } from "react-router-dom";
-import aibrain from "./aibrain.svg";
+import { useState } from 'react';
+import { Menu } from 'lucide-react';
+import { Link, useLocation, useNavigate } from 'react-router-dom';
+import aibrain from './aibrain.svg';
 
 interface NavbarProps {
   toggleSignIn?: () => void;
 }
 
-const Navbar: React.FC<NavbarProps> = () => {
+const Navbar: React.FC<NavbarProps> = ({ toggleSignIn }) => {
   const [isOpen, setIsOpen] = useState(false);
   const location = useLocation();
   const navigate = useNavigate();
 
-  const isLoggedIn = localStorage.getItem("token");
-  const userName = localStorage.getItem("userName");
+  const isLoggedIn = localStorage.getItem('token');
+  const userName = localStorage.getItem('userName');
 
   const handleLogout = () => {
-    localStorage.removeItem("token");
-    localStorage.removeItem("userName");
-    navigate("/");
+    localStorage.removeItem('token');
+    localStorage.removeItem('userName');
+    navigate('/');
     window.location.reload();
   };
 
   const links = [
-    { name: "Home", href: "/" },
-    { name: "Create", href: "/create" },
-    { name: "Pricing", href: "#" },
-    { name: "Contact", href: "#" },
+    { name: 'Home', href: '/' },
+    { name: 'Create', href: '/create' },
+    { name: 'Pricing', href: '/pricing' },
+    { name: 'Contact', href: '/contact' },
   ];
 
   return (
@@ -45,12 +45,13 @@ const Navbar: React.FC<NavbarProps> = () => {
             className="inline-flex items-center p-2 w-10 h-10 justify-center text-sm text-gray-500 rounded-lg md:hidden focus:outline-none focus:ring-2 focus:ring-gray-300 dark:text-gray-400 dark:focus:ring-gray-500"
             aria-controls="navbar-default"
             aria-expanded={isOpen}
+            aria-label="Toggle navigation menu"
           >
             <span className="sr-only">Open main menu</span>
             <Menu className="w-5 h-5" />
           </button>
           <div
-            className={`${isOpen ? "block" : "hidden"} w-full md:block md:w-auto`}
+            className={`${isOpen ? 'block' : 'hidden'} w-full md:block md:w-auto`}
             id="navbar-default"
           >
             <ul className="font-medium flex flex-col p-4 md:p-0 mt-4 border border-gray-100 rounded-lg md:flex-row md:space-x-8 rtl:space-x-reverse md:mt-0 md:border-0">
@@ -60,9 +61,10 @@ const Navbar: React.FC<NavbarProps> = () => {
                     to={link.href}
                     className={`block py-2 px-3 rounded-sm md:p-0 transition duration-300 ease-in-out transform hover:scale-105 ${
                       location.pathname === link.href
-                        ? "text-white bg-blue-700 md:bg-transparent md:text-blue-700 dark:text-white md:dark:text-blue-500"
-                        : "text-gray-900 md:hover:text-blue-600 dark:text-white md:dark:hover:text-blue-400"
+                        ? 'text-white bg-blue-700 md:bg-transparent md:text-blue-700 dark:text-white md:dark:text-blue-500'
+                        : 'text-gray-900 md:hover:text-blue-600 dark:text-white md:dark:hover:text-blue-400'
                     }`}
+                    aria-current={location.pathname === link.href ? 'page' : undefined}
                   >
                     {link.name}
                   </Link>
@@ -74,21 +76,29 @@ const Navbar: React.FC<NavbarProps> = () => {
         <div className="flex space-x-4 ml-auto">
           {isLoggedIn ? (
             <div className="flex items-center space-x-4">
-              <span className="text-gray-900 dark:text-white">Hello, {userName}</span>
+              <Link
+                to="/profile"
+                className="text-gray-900 dark:text-white hover:underline"
+                aria-label={`View profile for ${userName}`}
+              >
+                My Account
+              </Link>
               <button
                 onClick={handleLogout}
                 className="px-4 py-2 text-red-700 border border-red-700 rounded-lg transition duration-300 hover:bg-red-700 hover:text-white"
+                aria-label="Logout"
               >
                 Logout
               </button>
             </div>
           ) : (
-            <Link
-              to="/connect"
+            <button
+              onClick={toggleSignIn}
               className="px-4 py-2 text-blue-700 border border-blue-700 rounded-lg transition duration-300 hover:bg-blue-700 hover:text-white"
+              aria-label="Login or Register"
             >
               Login / Register
-            </Link>
+            </button>
           )}
         </div>
       </div>
