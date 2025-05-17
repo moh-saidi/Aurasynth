@@ -1,14 +1,18 @@
 from flask import Flask, request, jsonify
 from flask_cors import CORS
-import os
-import base64
-from mido import MidiFile
+import requests
+import logging
+import time
 
 app = Flask(__name__)
 CORS(app)
 
-# Configuration
-SAMPLE_MIDI_PATH = os.path.join(os.path.dirname(__file__), './sample.mid')
+# Initialize logger
+logging.basicConfig(level=logging.INFO)
+logger = logging.getLogger(__name__)
+
+# Kaggle API endpoint (replace with your ngrok URL)
+KAGGLE_API_URL = "https://d865-34-29-99-232.ngrok-free.app/generate-midi"  # Update after running Kaggle notebook
 
 @app.route('/api/generate', methods=['POST'])
 def generate_music():
@@ -19,28 +23,35 @@ def generate_music():
         return jsonify({"error": "Prompt is required"}), 400
 
     try:
-        # Check if sample.mid exists
-        if not os.path.exists(SAMPLE_MIDI_PATH):
-            return jsonify({"error": "Sample MIDI file not found"}), 404
+        # Send prompt to Kaggle API
+        response = requests.post(KAGGLE_API_URL, json={"prompt": prompt}, timeout=60)
+        response.raise_for_status()  # Raise exception for bad status codes
 
-        # Read the sample.mid file
-        with open(SAMPLE_MIDI_PATH, 'rb') as midi_file:
-            midi_base64 = base64.b64encode(midi_file.read()).decode('utf-8')
+        result = response.json()
+        if "error" in result:
+            return jsonify({"error": result["error"]}), 500
 
-        # Generate a unique filename based on the prompt
+        midi_data = result["midi"]["data"]
+        mimetype = result["midi"]["mimetype"]
+
+        # Generate filename
         sanitized_prompt = ''.join(c for c in prompt if c.isalnum())[:20]
-        timestamp = str(int(os.times().elapsed * 1000))
+        timestamp = str(int(time.time() * 1000))
         midi_filename = f"{timestamp}-{sanitized_prompt}.mid"
 
         return jsonify({
             "midi": {
                 "filename": midi_filename,
-                "data": midi_base64,
-                "mimetype": "audio/midi"
+                "data": midi_data,
+                "mimetype": mimetype
             }
         }), 200
 
+    except requests.RequestException as e:
+        logger.error(f"Error contacting Kaggle API: {str(e)}")
+        return jsonify({"error": "Failed to generate MIDI due to server error"}), 500
     except Exception as e:
+        logger.error(f"Error processing request: {str(e)}")
         return jsonify({"error": str(e)}), 500
 
 if __name__ == '__main__':
