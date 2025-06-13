@@ -20,25 +20,18 @@ AuraSynth is an intelligent music composition platform that generates **MIDI mus
 
 The process begins with **FLAN-T5**, a large language model fine-tuned for instruction-following tasks. It processes the user's textual prompt, such as "a melancholic piano piece with a slow tempo," and generates a semantic embedding that captures the nuances of the description.
 
-![FLAN-T5 Architecture](https://huggingface.co/google/flan-t5-base/resolve/main/assets/architecture.png)
-
-*Image Source: [Hugging Face](https://huggingface.co/google/flan-t5-base)*
 
 ### 2. MIDI Representation with REMI Tokenization
 
 To bridge the gap between text and music, AuraSynth utilizes the **REMI (REvamped MIDI)** tokenizer. This tokenizer converts musical elements into a structured sequence of tokens representing pitch, velocity, duration, bar, and position. This structured representation allows the model to understand and generate complex musical compositions.
 
-![REMI Tokenization](https://miditok.readthedocs.io/en/v2.0.7/_images/remi_example.png)
 
-*Image Source: [MidiTok Documentation](https://miditok.readthedocs.io/en/v2.0.7/tokenizations.html)*
 
 ### 3. Music Generation with Discrete Diffusion Models
 
 At the core of the music generation process is a **Discrete Diffusion Probabilistic Model (D3PM)**. This model operates by gradually adding noise to a MIDI sequence and then learning to reverse this process to generate new sequences. The denoising process is guided by the semantic embeddings from FLAN-T5, ensuring that the generated music aligns with the original text prompt.
 
-![Diffusion Model Process](https://datasciencedojo.com/blog/wp-content/uploads/2023/05/Stable-Audio-2.0-Architecture.png)
 
-*Image Source: [Data Science Dojo](https://datasciencedojo.com/blog/5-ai-music-generation-models/)*
 
 ### 4. MIDI Decoding and Post-Processing
 
